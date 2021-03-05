@@ -37,7 +37,6 @@ jobs:
   #           - ~/.m2
   #         key: v1-dependencies-{{ checksum "deps.edn" }}
   linux:
-    resource_class: large
     docker:
       - image: circleci/clojure:lein-2.9.3-buster
     working_directory: ~/repo
@@ -99,66 +98,6 @@ jobs:
       - store_artifacts:
           path: /tmp/release
           destination: release
-  mac:
-    macos:
-      xcode: "12.0.0"
-    resource_class: large
-    environment:
-      GRAALVM_HOME: /Users/distiller/graalvm-ce-java11-21.0.0/Contents/Home
-      APP_PLATFORM: macos # used in release script
-      APP_TEST_ENV: native
-    steps:
-      - checkout
-      - run:
-          name: Get rid of erroneous git config
-          command: |
-              rm -rf ~/.gitconfig
-      - restore_cache:
-          keys:
-            - mac-{{ checksum "deps.edn" }}-{{ checksum ".circleci/config.yml" }}
-      - run:
-          name: Install Clojure
-          command: |
-            .circleci/script/install-clojure /usr/local
-      - run:
-          name: Install Leiningen
-          command: |
-            .circleci/script/install-leiningen
-
-      - run:
-          name: Download GraalVM
-          command: |
-            cd ~
-            ls -la
-            if ! [ -d graalvm-ce-java11-21.0.0 ]; then
-              curl -O -sL https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-21.0.0/graalvm-ce-java11-darwin-amd64-21.0.0.tar.gz
-              tar xzf graalvm-ce-java11-darwin-amd64-21.0.0.tar.gz
-            fi
-      - run:
-          name: Build binary
-          command: |
-            script/compile
-          no_output_timeout: 30m
-      # - run:
-      #     name: Run tests
-      #     command: |
-      #       script/test
-      # - run:
-      #     name: Performance report
-      #     command: |
-      #       .circleci/script/performance
-      - run:
-          name: Release
-          command: |
-            .circleci/script/release
-      - save_cache:
-          paths:
-            - ~/.m2
-            - ~/graalvm-ce-java11-21.0.0
-          key: mac-{{ checksum "deps.edn" }}-{{ checksum ".circleci/config.yml" }}
-      - store_artifacts:
-          path: /tmp/release
-          destination: release
   deploy:
     docker:
       - image: circleci/clojure:lein-2.9.3-buster
@@ -198,7 +137,6 @@ workflows:
     jobs:
 #      - jvm
       - linux
-      - mac
       - deploy:
           filters:
             branches:
@@ -206,7 +144,6 @@ workflows:
           requires:
 #            - jvm
             - linux
-            - mac
       # - docker:
       #     filters:
       #       branches:
